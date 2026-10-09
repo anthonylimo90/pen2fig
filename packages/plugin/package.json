@@ -1,0 +1,12 @@
+{
+  "name": "@pen2fig/plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Figma plugin that builds pen2fig bundles — dropped in by hand, or pulled from `pen2fig serve` by an agent.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": { "@pen2fig/core": "0.1.0" }
+}

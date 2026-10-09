@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { color-scheme: light dark; --fg: #0d1424; --muted: #6e7891; --line: #e6eaf2; --bg: #fff; --ok: #16a163; --bad: #dc3b63; --accent: #6d48e5; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #eef1f7; --muted: #9aa3b8; --line: #2a3142; --bg: #1e1e1e; } }
+  body { margin: 0; padding: 14px; font: 12px/1.45 Inter, system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+  h1 { font-size: 13px; margin: 0 0 2px; }
+  p { margin: 0 0 10px; color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.on { background: var(--ok); } .dot.off { background: var(--bad); }
+  input[type=text] { flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+  label.drop { display: block; border: 1px dashed var(--line); border-radius: 8px; padding: 16px; text-align: center; color: var(--muted); cursor: pointer; margin-bottom: 10px; }
+  label.drop:hover { border-color: var(--accent); color: var(--fg); }
+  pre { margin: 0; max-height: 190px; overflow: auto; white-space: pre-wrap; font: 11px/1.4 ui-monospace, monospace; color: var(--muted); }
+</style>
+</head>
+<body>
+  <h1>pen2fig</h1>
+  <p>Builds Pencil bundles. Run <code>pen2fig serve</code> and leave this open, or drop a bundle.json.</p>
+  <div class="row"><span id="dot" class="dot"></span><input id="server" type="text" value="http://localhost:7331" /></div>
+  <label class="drop">Drop or choose bundle.json<input id="file" type="file" accept=".json,application/json" hidden /></label>
+  <pre id="log"></pre>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const log = (s) => { const el = $("log"); el.textContent = (s + "\n" + el.textContent).slice(0, 8000); };
+  const server = () => $("server").value.replace(/\/$/, "");
+  let busy = false, online = null, currentJob = null, localImages = {};
+
+  function send(msg) { parent.postMessage({ pluginMessage: msg }, "*"); }
+
+  // Manual mode: a dropped bundle. Images resolve only through a running server or as data: URLs.
+  async function readFile(f) {
+    try { const bundle = JSON.parse(await f.text()); busy = true; currentJob = null; send({ type: "build", bundle }); }
+    catch (e) { log("Not a bundle: " + e.message); }
+  }
+  $("file").addEventListener("change", (e) => e.target.files[0] && readFile(e.target.files[0]));
+  document.addEventListener("dragover", (e) => e.preventDefault());
+  document.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+
+  // Agent mode: poll the local server for jobs.
+  async function poll() {
+    if (!busy) {
+      try {
+        const r = await fetch(server() + "/next", { cache: "no-store" });
+        setOnline(true);
+        if (r.status === 200) {
+          const job = await r.json();
+          busy = true; currentJob = job.id;
+          log(`Job ${job.id}: ${job.bundle.screens.length} screen(s) → “${job.bundle.page}”`);
+          send({ type: "build", jobId: job.id, bundle: job.bundle });
+        }
+      } catch { setOnline(false); }
+    }
+    setTimeout(poll, 1000);
+  }
+  function setOnline(v) { if (v === online) return; online = v; $("dot").className = "dot " + (v ? "on" : "off"); log(v ? "Connected to " + server() : "Waiting for pen2fig serve at " + server()); }
+
+  onmessage = async (ev) => {
+    const msg = ev.data.pluginMessage;
+    if (!msg) return;
+    if (msg.type === "status") log(msg.text);
+    if (msg.type === "fetch-image") {
+      try {
+        const url = msg.key.startsWith("data:") ? msg.key : server() + "/image?key=" + encodeURIComponent(msg.key);
+        const r = await fetch(url);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        send({ type: "image-bytes", reqId: msg.reqId, bytes: new Uint8Array(await r.arrayBuffer()) });
+      } catch (e) { send({ type: "image-bytes", reqId: msg.reqId, error: e.message }); }
+    }
+    if (msg.type === "report") {
+      const rep = msg.report; busy = false;
+      if (rep.error) log("Failed: " + rep.error);
+      else {
+        const bad = rep.screens.filter((s) => s.status !== "ok").length;
+        log(`Done in ${(rep.ms / 1000).toFixed(1)}s · ${rep.screens.length} screens (${bad} off-size) · ${rep.images.placed} images · ${rep.issues.length} issues · ${rep.warnings.length} warnings`);
+      }
+      if (rep.jobId) {
+        try { await fetch(server() + "/report/" + rep.jobId, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(rep) }); }
+        catch (e) { log("Could not post report: " + e.message); }
+      }
+    }
+  };
+  poll();
+</script>
+</body>
+</html>

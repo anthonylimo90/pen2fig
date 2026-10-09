@@ -1,0 +1,157 @@
+{
+ "version": 1,
+ "source": {
+  "file": "examples/handmade",
+  "exportedAt": "2026-10-09T00:00:00Z"
+ },
+ "page": "pen2fig example",
+ "components": [],
+ "screens": [
+  {
+   "id": "screen1",
+   "bounds": {
+    "w": 480,
+    "h": 320,
+    "x": 0,
+    "y": 0
+   },
+   "node": {
+    "id": "screen1",
+    "type": "frame",
+    "name": "Example \u00b7 Screen",
+    "width": 480,
+    "height": 320,
+    "layout": "vertical",
+    "alignItems": "center",
+    "justifyContent": "center",
+    "fill": {
+     "type": "gradient",
+     "gradientType": "linear",
+     "rotation": 180,
+     "colors": [
+      {
+       "color": "#F6F7FB",
+       "position": 0
+      },
+      {
+       "color": "#EDE7FE",
+       "position": 1
+      }
+     ]
+    },
+    "children": [
+     {
+      "id": "card1",
+      "type": "frame",
+      "name": "Example \u00b7 Card",
+      "width": 360,
+      "layout": "vertical",
+      "gap": 12,
+      "padding": [
+       20,
+       24
+      ],
+      "fill": "#FFFFFF",
+      "stroke": "#E6EAF2",
+      "strokeWidth": 1,
+      "cornerRadius": 12,
+      "children": [
+       {
+        "id": "eyebrow",
+        "type": "text",
+        "content": "PEN2FIG",
+        "fontFamily": "Inter",
+        "fontWeight": "600",
+        "fontSize": 11,
+        "letterSpacing": 0.6,
+        "fill": "#6D48E5"
+       },
+       {
+        "id": "title",
+        "type": "text",
+        "content": "Ported from Pencil",
+        "fontFamily": "Inter",
+        "fontWeight": "700",
+        "fontSize": 20,
+        "fill": "#0D1424"
+       },
+       {
+        "id": "body",
+        "type": "text",
+        "content": "A row is the default layout, a stroke without a width draws nothing, and fill_container resolves against the parent.",
+        "fontFamily": "Inter",
+        "fontSize": 14,
+        "lineHeight": 1.45,
+        "textGrowth": "fixed-width",
+        "width": "fill_container",
+        "fill": "#4A5369"
+       },
+       {
+        "id": "actions",
+        "type": "frame",
+        "name": "actions",
+        "gap": 8,
+        "children": [
+         {
+          "id": "primary",
+          "type": "frame",
+          "name": "primary",
+          "padding": [
+           8,
+           14
+          ],
+          "cornerRadius": 8,
+          "fill": "#6D48E5",
+          "children": [
+           {
+            "id": "pl",
+            "type": "text",
+            "content": "Open",
+            "fontFamily": "Inter",
+            "fontWeight": "500",
+            "fontSize": 13,
+            "fill": "#FFFFFF"
+           }
+          ]
+         },
+         {
+          "id": "secondary",
+          "type": "frame",
+          "name": "secondary",
+          "padding": [
+           8,
+           14
+          ],
+          "cornerRadius": 8,
+          "stroke": "#C9D2E3",
+          "strokeWidth": 1,
+          "children": [
+           {
+            "id": "sl",
+            "type": "text",
+            "content": "Later",
+            "fontFamily": "Inter",
+            "fontWeight": "500",
+            "fontSize": 13,
+            "fill": "#0D1424"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "id": "hairline",
+        "type": "frame",
+        "name": "no width \u2192 no stroke",
+        "width": "fill_container",
+        "height": 1,
+        "stroke": "#FF0000"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "images": {}
+}

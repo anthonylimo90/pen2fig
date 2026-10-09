@@ -1,0 +1,12 @@
+{
+  "name": "@pen2fig/core",
+  "version": "0.1.0",
+  "description": "Pencil node \u2192 Figma node engine. Runs inside any Figma plugin context.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

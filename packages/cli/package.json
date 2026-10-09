@@ -1,0 +1,9 @@
+{
+  "name": "pen2fig",
+  "version": "0.1.0",
+  "description": "Port Pencil (.pen) designs into Figma: extract, bundle, and drive the pen2fig Figma plugin from an agent.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "pen2fig": "src/cli.ts" },
+  "engines": { "node": ">=23.6" }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "pen2fig",
+  "private": true,
+  "description": "Port Pencil (.pen) designs into Figma \u2014 an engine, an extractor and an agent-drivable Figma plugin.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/cli/tsconfig.json"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.141.0",
+    "@types/node": "^24.19.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

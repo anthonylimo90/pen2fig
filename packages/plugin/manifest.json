@@ -1,0 +1,14 @@
+{
+  "name": "pen2fig",
+  "id": "pen2fig-dev",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:7331"],
+    "reasoning": "Pulls build jobs and images from the local `pen2fig serve` process the developer starts."
+  }
+}
