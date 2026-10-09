@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   counterAlign, expandPadding, gradientTransform, layoutModeFor, normalizeWeight, parseHex, parseSize,
-  pickFontStyle, primaryAlign, sizingFor,
+  pickFontStyle, primaryAlign, sizingFor, textDecoration,
 } from "../src/pure";
 import { checkBundle } from "../src/bundle";
 
@@ -97,4 +97,17 @@ describe("bundle", () => {
   it("accepts a valid bundle", () => expect(() => checkBundle(ok)).not.toThrow());
   it("rejects another version", () => expect(() => checkBundle({ ...ok, version: 2 })).toThrow(/version/));
   it("rejects a mismatched entry", () => expect(() => checkBundle({ ...ok, screens: [{ ...ok.screens[0], id: "b" }] })).toThrow(/wraps/));
+});
+
+describe("textDecoration", () => {
+  it("lets underline win, since Figma has one decoration", () => {
+    expect(textDecoration(true, true)).toBe("UNDERLINE");
+    expect(textDecoration(false, true)).toBe("STRIKETHROUGH");
+    expect(textDecoration(undefined, undefined)).toBe("NONE");
+  });
+  it("keeps the node's current decoration for a flag that isn't set", () => {
+    expect(textDecoration(undefined, true, "UNDERLINE")).toBe("UNDERLINE");
+    expect(textDecoration(false, undefined, "UNDERLINE")).toBe("NONE");
+    expect(textDecoration(undefined, false, "STRIKETHROUGH")).toBe("NONE");
+  });
 });

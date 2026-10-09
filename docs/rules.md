@@ -20,6 +20,13 @@ Each rule below fixed a real frame that came out wrong. All of them are tested i
 - **Text with no fill is invisible in Pencil,** and stays invisible.
 - **Gradients:** Pencil's 0° points up. The transform is the inverse of the matrix that maps the gradient onto the node (see `gradientTransform`).
 
+## Text
+
+- **A text node has one style.** Pencil's format has no styled runs inside a text node: `content` is a single string, and mixed styling is built from several text nodes in a row. Each one becomes its own Figma text layer.
+- **Underline and strikethrough can be variables,** but Figma can't bind text decoration, so the engine resolves the variable's value. Underline wins when both are set, because Figma has one decoration per run.
+- **A flag an override leaves out keeps the instance's value,** so `underline: false` on an instance clears it and nothing else changes.
+- **`href` links the whole text node.** An empty `href` in an override removes the link.
+
 ## Fonts
 
 - **Weights are matched by name across foundries:** "SemiBold" vs "Semi Bold", "ExtraBold" vs "Extra Bold".
@@ -68,6 +75,5 @@ Each rule below fixed a real frame that came out wrong. All of them are tested i
 
 - Mesh gradients use their first colour, and shaders use `u_base`.
 - `flipX`/`flipY` are ignored, with a warning.
-- Rich text runs (mixed styles inside one text node) aren't extracted yet.
 - Only Lucide icons are imported. Other icon libraries need their components registered by hand.
 - Only the first theme axis becomes Figma modes (see [Variables](#variables)).

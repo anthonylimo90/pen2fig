@@ -70,7 +70,7 @@ Lucide icons work the same way. `bundle` fetches the SVG of every Lucide icon th
 | variables and themes (`GetVariables()`) | a *Pencil* variable collection, one mode per theme (light, dark, …), aliases kept |
 | `$variable` colours, numbers, fonts | bound Figma variables |
 | `reusable` nodes and `ref` instances, `descendants` overrides | components, instances and overrides. The instance is detached only when Figma refuses an override |
-| text (family, weight, size, line height, tracking, growth) | text, with the nearest installed style |
+| text (family, weight, style, size, line height, tracking, growth, underline, strikethrough, `href`) | text, with the nearest installed style and a link |
 | Lucide icons (`icon` / `icon_font`) | instances of `Icon/<name>` components, imported from Lucide onto an *Icons* page |
 | icons from other libraries | instances of `Icon/<name>` components that you register |
 | rectangle, ellipse (arcs), polygon, path (SVG geometry) | shapes and vectors |

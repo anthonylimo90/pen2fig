@@ -197,6 +197,45 @@ describe("fonts", () => {
   });
 });
 
+describe("text styling", () => {
+  it("resolves variable underline and strikethrough flags, which Figma can't bind", async () => {
+    fake.addVariable("links-underlined", false, "BOOLEAN");
+    const { find } = await screen(frame("s", { width: 300, height: 100 }, [
+      text("a", "on", { underline: true }),
+      text("b", "var off", { underline: "$links-underlined" }),
+      text("c", "struck", { strikethrough: true }),
+    ]));
+    expect([find("a").textDecoration, find("b").textDecoration, find("c").textDecoration]).toEqual(["UNDERLINE", "NONE", "STRIKETHROUGH"]);
+  });
+
+  it("warns about a missing variable flag instead of underlining", async () => {
+    const { engine, find } = await screen(frame("s", { width: 300, height: 100 }, [text("a", "x", { underline: "$nope" })]));
+    expect(find("a").textDecoration).toBe("NONE");
+    expect(engine.warnings).toContain("missing variable $nope");
+  });
+
+  it("links the text node to href", async () => {
+    const { find } = await screen(frame("s", { width: 300, height: 100 }, [text("a", "Docs", { href: "https://docs.pencil.dev" })]));
+    expect(find("a").hyperlink).toEqual({ type: "URL", value: "https://docs.pencil.dev" });
+  });
+
+  it("resolves a variable font style", async () => {
+    fake.addVariable("quote-style", "italic", "STRING");
+    const { find } = await screen(frame("s", { width: 300, height: 100 }, [text("a", "said", { fontStyle: "$quote-style" })]));
+    expect(find("a").fontName).toEqual({ family: "Inter", style: "Italic" });
+  });
+
+  it("clears decoration and links through instance overrides", async () => {
+    const engine = await createEngine();
+    await engine.buildComponent(frame("link", { reusable: true }, [text("t", "More", { underline: true, href: "https://a.example" })]), (globalThis as any).figma.createPage(), { w: 0, h: 0 });
+    const r = await engine.buildScreen(frame("s", { width: 300, height: 100 }, [{ id: "r", type: "ref", ref: "link", descendants: { t: { underline: false, href: "" } } } as PenNode]), fake.page as any, { w: 300, h: 100 });
+    const inst: any = (await (globalThis as any).figma.getNodeByIdAsync(r.id!)).children[0];
+    const t = inst.findOne((n: any) => n.type === "TEXT");
+    expect(inst.type).toBe("INSTANCE");
+    expect([t.textDecoration, t.hyperlink]).toEqual(["NONE", null]);
+  });
+});
+
 describe("components and instances", () => {
   // A button: a horizontal frame with an inner box and a label.
   const button = frame("btn", { reusable: true, padding: 8, gap: 4 }, [frame("box", { width: 40, height: 20 }), text("lbl", "Button")]);

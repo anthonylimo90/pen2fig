@@ -233,6 +233,7 @@ class Text extends Shape {
   textAlignHorizontal = "LEFT";
   textAlignVertical = "TOP";
   textDecoration = "NONE";
+  hyperlink: { type: string; value: string } | null = null;
   constructor() { super("TEXT"); this.strokeWeight = 1; }
   get characters() { return this._chars; }
   set characters(v: string) {

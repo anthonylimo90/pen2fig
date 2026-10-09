@@ -151,5 +151,15 @@ export function pickFontStyle(family: string, weight: number, italic: boolean, a
   return { style: WEIGHT_NAMES[weight][0], exact: false };
 }
 
+/**
+ * Figma text decoration from Pencil's two flags. Figma has one decoration per run, so underline wins
+ * over strikethrough. A flag left undefined keeps what the node has, which matters for overrides.
+ */
+export function textDecoration(underline: boolean | undefined, strike: boolean | undefined, current = "NONE"): "NONE" | "UNDERLINE" | "STRIKETHROUGH" {
+  const u = underline ?? current === "UNDERLINE";
+  const s = strike ?? current === "STRIKETHROUGH";
+  return u ? "UNDERLINE" : s ? "STRIKETHROUGH" : "NONE";
+}
+
 /** Pencil `lineHeight` is a multiplier (1.4); Figma wants a percentage. */
 export const lineHeightPercent = (m: number) => m * 100;

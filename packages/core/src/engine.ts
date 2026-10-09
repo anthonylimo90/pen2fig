@@ -10,7 +10,7 @@
 
 import {
   counterAlign, expandPadding, gradientTransform, isVarRef, layoutModeFor, lineHeightPercent,
-  normalizeWeight, parseHex, parseSize, pickFontStyle, primaryAlign, sizingFor, varName,
+  normalizeWeight, parseHex, parseSize, pickFontStyle, primaryAlign, sizingFor, textDecoration, varName,
 } from "./pure";
 import type { Bounds, PenEffect, PenFill, PenNode, PenOverride, PenProps, PenRef } from "./types";
 
@@ -181,8 +181,9 @@ export async function createEngine(opts: EngineOptions = {}) {
     if (!FAMILIES.has(fam) && FAMILIES.has(DEFAULT_FONT)) { warn(`font ${fam} not installed → ${DEFAULT_FONT}`); fam = DEFAULT_FONT; }
     let w: any = n.fontWeight;
     if (isVarRef(w)) w = resolveVar(varName(w));
-    const pick = pickFontStyle(fam, normalizeWeight(w), n.fontStyle === "italic", AVAIL);
-    if (!pick.exact) warn(`font ${fam} ${n.fontWeight ?? 400}${n.fontStyle === "italic" ? " italic" : ""} → ${pick.style}`);
+    const italic = num(n.fontStyle) === "italic";
+    const pick = pickFontStyle(fam, normalizeWeight(w), italic, AVAIL);
+    if (!pick.exact) warn(`font ${fam} ${n.fontWeight ?? 400}${italic ? " italic" : ""} → ${pick.style}`);
     return { family: fam, style: pick.style };
   }
   const loaded = new Set<string>();
@@ -350,8 +351,16 @@ export async function createEngine(opts: EngineOptions = {}) {
     }
     if (n.textAlign) t.textAlignHorizontal = { left: "LEFT", center: "CENTER", right: "RIGHT", justify: "JUSTIFIED" }[n.textAlign];
     if (n.textAlignVertical) t.textAlignVertical = { top: "TOP", middle: "CENTER", bottom: "BOTTOM" }[n.textAlignVertical];
-    if (n.underline) t.textDecoration = "UNDERLINE";
-    else if (n.strikethrough) t.textDecoration = "STRIKETHROUGH";
+    if (n.underline !== undefined || n.strikethrough !== undefined) {
+      // Figma can't bind decoration to a variable, so a `$var` flag is resolved to its value.
+      const flag = (x: unknown) => {
+        if (x === undefined) return undefined;
+        if (isVarRef(x) && !VAR[varName(x)]) warn("missing variable " + x);
+        return !!num(x);
+      };
+      t.textDecoration = textDecoration(flag(n.underline), flag(n.strikethrough), t.textDecoration);
+    }
+    if (n.href !== undefined) t.hyperlink = n.href ? { type: "URL", value: n.href } : null;
     if (n.fill !== undefined) t.fills = paints(n.fill);
     else if (isNew) t.fills = []; // Pencil text with no fill is invisible
   }

@@ -76,15 +76,17 @@ export interface PenProps {
   content?: string;
   fontFamily?: string;
   fontWeight?: string;
-  fontStyle?: "normal" | "italic";
+  fontStyle?: Var<"normal" | "italic">;
   fontSize?: Var<number>;
   lineHeight?: Var<number>;
   letterSpacing?: Var<number>;
   textAlign?: "left" | "center" | "right" | "justify";
   textAlignVertical?: "top" | "middle" | "bottom";
   textGrowth?: "auto" | "fixed-width" | "fixed-width-height";
-  underline?: boolean;
-  strikethrough?: boolean;
+  underline?: Var<boolean>;
+  strikethrough?: Var<boolean>;
+  /** Link target for the whole text node. */
+  href?: string;
   // icon
   icon?: string;
   library?: string;
