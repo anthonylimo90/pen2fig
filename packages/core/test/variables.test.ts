@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { installFakeFigma, uninstallFakeFigma } from "./fake-figma";
 import { importVariables, planVariables } from "../src/variables";
 import type { PenVariables } from "../src/types";
 
@@ -46,70 +47,42 @@ describe("planVariables", () => {
   });
 });
 
-// ── a small fake of figma.variables, enough for importVariables ──────────────
-function fakeFigma(opts: { maxModes?: number } = {}) {
-  let seq = 0;
-  const collections: any[] = [], variables: any[] = [];
-  const api = {
-    getLocalVariableCollectionsAsync: async () => collections,
-    getLocalVariablesAsync: async () => variables,
-    createVariableCollection(name: string) {
-      const c: any = {
-        id: "C" + ++seq, name, modes: [{ modeId: "M" + ++seq, name: "Mode 1" }],
-        renameMode(id: string, n: string) { c.modes.find((m: any) => m.modeId === id).name = n; },
-        addMode(n: string) {
-          if (c.modes.length >= (opts.maxModes ?? 4)) throw new Error("Limited to " + (opts.maxModes ?? 4) + " modes");
-          const m = { modeId: "M" + ++seq, name: n }; c.modes.push(m); return m.modeId;
-        },
-      };
-      collections.push(c); return c;
-    },
-    createVariable(name: string, coll: any, resolvedType: string) {
-      const v: any = { id: "V" + ++seq, name, variableCollectionId: coll.id, resolvedType, valuesByMode: {} as Record<string, unknown>, setValueForMode(m: string, x: unknown) { v.valuesByMode[m] = x; } };
-      variables.push(v); return v;
-    },
-    createVariableAlias: (v: any) => ({ type: "VARIABLE_ALIAS", id: v.id }),
-  };
-  (globalThis as any).figma = { variables: api };
-  return { collections, variables, api };
-}
-afterEach(() => { delete (globalThis as any).figma; });
+afterEach(uninstallFakeFigma);
 
 describe("importVariables", () => {
   it("creates a collection with one mode per theme and binds aliases", async () => {
-    const f = fakeFigma();
+    const f = installFakeFigma();
     const r = await importVariables(themed);
     expect(r).toMatchObject({ collection: "Pencil", modes: ["light", "dark"], created: 4, updated: 0, kept: [] });
     const [c] = f.collections;
-    expect(c.modes.map((m: any) => m.name)).toEqual(["light", "dark"]);
+    expect(c.modes.map((m) => m.name)).toEqual(["light", "dark"]);
     const bg = f.variables.find((v) => v.name === "bg"), surface = f.variables.find((v) => v.name === "surface");
-    expect(bg.valuesByMode[c.modes[1].modeId]).toEqual({ r: 0, g: 0, b: 0, a: 1 });
-    expect(surface.valuesByMode[c.modes[0].modeId]).toEqual({ type: "VARIABLE_ALIAS", id: bg.id });
+    expect(bg!.valuesByMode[c.modes[1].modeId]).toEqual({ r: 0, g: 0, b: 0, a: 1 });
+    expect(surface!.valuesByMode[c.modes[0].modeId]).toEqual({ type: "VARIABLE_ALIAS", id: bg!.id });
   });
 
   it("updates its own variables on a re-run instead of duplicating them", async () => {
-    const f = fakeFigma();
+    const f = installFakeFigma();
     await importVariables(themed);
     const r = await importVariables({ ...themed, variables: { ...themed.variables, "space-4": { type: "number", value: 20 } } });
     expect(r).toMatchObject({ created: 0, updated: 4 });
     expect(f.variables).toHaveLength(4);
-    expect(f.variables.find((v) => v.name === "space-4").valuesByMode[f.collections[0].modes[0].modeId]).toBe(20);
+    expect(f.variables.find((v) => v.name === "space-4")!.valuesByMode[f.collections[0].modes[0].modeId]).toBe(20);
   });
 
   it("leaves variables in other collections alone", async () => {
-    const f = fakeFigma();
-    const mine = f.api.createVariableCollection("Brand");
-    f.api.createVariable("bg", mine, "COLOR").setValueForMode(mine.modes[0].modeId, { r: 1, g: 0, b: 0, a: 1 });
+    const f = installFakeFigma();
+    f.addVariable("bg", { r: 1, g: 0, b: 0, a: 1 });
     const r = await importVariables(themed);
     expect(r.kept).toEqual(["bg"]);
     expect(f.variables.filter((v) => v.name === "bg")).toHaveLength(1);
     // The alias still resolves to the existing variable.
     const surface = f.variables.find((v) => v.name === "surface");
-    expect(Object.values(surface.valuesByMode)[0]).toEqual({ type: "VARIABLE_ALIAS", id: f.variables[0].id });
+    expect(Object.values(surface!.valuesByMode)[0]).toEqual({ type: "VARIABLE_ALIAS", id: f.variables[0].id });
   });
 
   it("skips values for modes the Figma plan won't allow", async () => {
-    fakeFigma({ maxModes: 1 });
+    installFakeFigma({ maxModes: 1 });
     const r = await importVariables(themed);
     expect(r.created).toBe(4);
     expect(r.warnings.join("\n")).toMatch(/mode dark not added/);

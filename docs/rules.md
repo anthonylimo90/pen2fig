@@ -1,6 +1,6 @@
 # Translation rules
 
-Each rule below fixed a real frame that came out wrong. The pure ones are unit-tested in `packages/core/test`.
+Each rule below fixed a real frame that came out wrong. All of them are tested in `packages/core/test`: the pure ones directly, the rest against an in-memory Figma (`fake-figma.ts`) that reproduces the Figma quirks the engine works around.
 
 ## Layout
 
@@ -24,6 +24,7 @@ Each rule below fixed a real frame that came out wrong. The pure ones are unit-t
 
 - **Weights are matched by name across foundries:** "SemiBold" vs "Semi Bold", "ExtraBold" vs "Extra Bold".
 - **When a style isn't installed, the nearest weight is used,** then italic is dropped, and a warning is recorded. A missing style never stops a build.
+- **When a whole family isn't installed, the default family (Inter) is used,** with a warning. Otherwise loading the font would fail the entire screen.
 
 ## Components and instances
 

@@ -16,7 +16,6 @@
   },
   "include": [
     "packages/core/src",
-    "packages/core/test",
     "packages/plugin/src"
   ]
 }

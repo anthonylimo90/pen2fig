@@ -171,10 +171,14 @@ export async function createEngine(opts: EngineOptions = {}) {
   }
 
   // ── fonts ──────────────────────────────────────────────────────────────────
-  const AVAIL = new Set((await figma.listAvailableFontsAsync()).map((f) => f.fontName.family + "|" + f.fontName.style));
+  const fonts = await figma.listAvailableFontsAsync();
+  const AVAIL = new Set(fonts.map((f) => f.fontName.family + "|" + f.fontName.style));
+  const FAMILIES = new Set(fonts.map((f) => f.fontName.family));
   function fontOf(n: PenProps): FontName {
     let fam = n.fontFamily || DEFAULT_FONT;
     if (isVarRef(fam)) fam = resolveVar(varName(fam)) || DEFAULT_FONT;
+    // A family that isn't installed would fail the whole screen at loadFontAsync.
+    if (!FAMILIES.has(fam) && FAMILIES.has(DEFAULT_FONT)) { warn(`font ${fam} not installed → ${DEFAULT_FONT}`); fam = DEFAULT_FONT; }
     let w: any = n.fontWeight;
     if (isVarRef(w)) w = resolveVar(varName(w));
     const pick = pickFontStyle(fam, normalizeWeight(w), n.fontStyle === "italic", AVAIL);

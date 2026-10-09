@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`example bundle > builds node for node, with its variables bound 1`] = `
+"FRAME "Example · Screen" 480x320 vertical FIXED/FIXED fill gradient_linear
+  FRAME "Example · Card" 360x218.7 vertical FIXED/HUG fill var stroke #e6eaf2 1 bound topLeftRadius,topRightRadius,bottomRightRadius,bottomLeftRadius
+    TEXT "Text" 42.7x13.2 "PEN2FIG" Inter Semi Bold 11 fill var
+    TEXT "Text" 180x24 "Ported from Pencil" Inter Bold 20 fill var
+    TEXT "Text" 312x60.9 "A row is the default layout, a stroke without a width draws nothing, and fill_container resolves against the parent." Inter Regular 14 fill #4a5369
+    FRAME "actions" 122.5x31.6 horizontal HUG/HUG
+      FRAME "primary" 54x31.6 horizontal HUG/HUG fill #6d48e5
+        TEXT "Text" 26x15.6 "Open" Inter Medium 13 fill #ffffff
+      FRAME "secondary" 60.5x31.6 horizontal HUG/HUG stroke #c9d2e3 1
+        TEXT "Text" 32.5x15.6 "Later" Inter Medium 13 fill #0d1424
+    FRAME "no width → no stroke" 312x1 horizontal FILL/FIXED stroke #ff0000 0"
+`;
