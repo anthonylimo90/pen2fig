@@ -59,6 +59,8 @@ Re-running a bundle replaces the frames it built before (a ledger keyed by Penci
 
 The snippet also extracts the file's variables. The plugin imports them into a Figma collection called *Pencil* before it builds anything, so `$name` references bind to real variables. A re-run updates that collection in place. Variables of the same name in your own collections are left alone and used as they are. Pass `--no-variables` to `snippet` or `bundle` to skip this.
 
+Lucide icons work the same way. `bundle` fetches the SVG of every Lucide icon the frames use (from `lucide-static` 1.54.0 on unpkg, or `--lucide <version>`) and embeds it in the bundle. The plugin then turns each one into an `Icon/<name>` component on an *Icons* page. If the file already has a component with that name, the plugin uses yours. Offline, point `--icons-dir` at a `lucide-static/icons` folder. `--no-icons` skips the step. Lucide is ISC-licensed; each component keeps its source URL in plugin data.
+
 ## What gets mapped
 
 | Pencil | Figma |
@@ -69,7 +71,8 @@ The snippet also extracts the file's variables. The plugin imports them into a F
 | `$variable` colours, numbers, fonts | bound Figma variables |
 | `reusable` nodes and `ref` instances, `descendants` overrides | components, instances and overrides. The instance is detached only when Figma refuses an override |
 | text (family, weight, size, line height, tracking, growth) | text, with the nearest installed style |
-| icons (`icon` + `library`) | instances of components named `Icon/<name>` that you register |
+| Lucide icons (`icon` / `icon_font`) | instances of `Icon/<name>` components, imported from Lucide onto an *Icons* page |
+| icons from other libraries | instances of `Icon/<name>` components that you register |
 | rectangle, ellipse (arcs), polygon, path (SVG geometry) | shapes and vectors |
 | linear/radial/angular gradients, shadows, blurs | paints and effects |
 | image fills | placeholders that the plugin replaces with real bytes from `pen2fig serve` |

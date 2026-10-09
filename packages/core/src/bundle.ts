@@ -1,6 +1,7 @@
 // bundle.json — what the extractor writes and the plugin builds. Versioned so a Pencil format
 // change fails loudly instead of producing a quietly wrong file.
 
+import type { BundleIcon } from "./icons";
 import type { Bounds, PenNode, PenVariables } from "./types";
 
 export const BUNDLE_VERSION = 1;
@@ -24,6 +25,8 @@ export interface Bundle {
   images?: Record<string, { path?: string; url?: string }>;
   /** Pencil variables, imported into a Figma collection before anything is built. */
   variables?: PenVariables;
+  /** Icon SVGs by name (Lucide), built as `Icon/<name>` components before anything else. */
+  icons?: Record<string, BundleIcon>;
 }
 
 export function checkBundle(b: unknown): asserts b is Bundle {
@@ -33,6 +36,7 @@ export function checkBundle(b: unknown): asserts b is Bundle {
   if (typeof x.page !== "string" || !x.page) throw new Error("bundle: page is required");
   if (!Array.isArray(x.screens)) throw new Error("bundle: screens must be an array");
   if (x.variables !== undefined && (typeof x.variables !== "object" || typeof x.variables.variables !== "object")) throw new Error("bundle: variables must be GetVariables() output");
+  if (x.icons !== undefined && (typeof x.icons !== "object" || Object.values(x.icons).some((i) => typeof i?.svg !== "string"))) throw new Error("bundle: icons must map names to { library, svg }");
   for (const s of [...(x.components ?? []), ...x.screens]) {
     if (!s.id || !s.node || !s.bounds) throw new Error(`bundle: entry ${s?.id ?? "?"} needs id, bounds and node`);
     if (s.node.id !== s.id) throw new Error(`bundle: entry ${s.id} wraps node ${s.node.id}`);

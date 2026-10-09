@@ -550,7 +550,7 @@ export async function createEngine(opts: EngineOptions = {}) {
   }
 
   async function childMatches(c: AnyNode, sp: PenNode): Promise<boolean> {
-    if (sp.type === "icon") { if (c.type !== "INSTANCE") return false; const m = await c.getMainComponentAsync(); return !!m && m.name === ICON + sp.icon; }
+    if (sp.type === "icon" || sp.type === "icon_font") { if (c.type !== "INSTANCE") return false; const m = await c.getMainComponentAsync(); return !!m && m.name === ICON + (sp.icon ?? sp.iconFontName); }
     if (sp.type === "text") return c.type === "TEXT" && c.characters === String(sp.content ?? "");
     if (sp.type === "ref") { if (c.type !== "INSTANCE") return false; const m = await c.getMainComponentAsync(); return !!m && pidOf(m) === (sp as PenRef).ref; }
     return false;
@@ -727,7 +727,7 @@ export async function createEngine(opts: EngineOptions = {}) {
     saveRegistry();
   }
 
-  return { build, buildComponent, buildScreen, preloadFonts, repairPaints, register, resolveVar, warnings, registry, namespace: NS };
+  return { build, buildComponent, buildScreen, preloadFonts, repairPaints, register, resolveVar, warnings, registry, namespace: NS, iconPrefix: ICON };
 }
 
 export type Engine = Awaited<ReturnType<typeof createEngine>>;

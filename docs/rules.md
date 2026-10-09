@@ -49,6 +49,14 @@ Each rule below fixed a real frame that came out wrong. All of them are tested i
 - **A variable that already exists in another collection is kept** and used as it is. Only the *Pencil* collection is updated on a re-run.
 - **A mode the Figma plan doesn't allow** is skipped with a warning. Its values are dropped and the default mode still binds.
 
+## Icons
+
+- **Icons are instances of components named `Icon/<name>`,** registered by name. Lucide icons are imported automatically; icons from any other library must be registered (`engine.register("icon", name, id)`).
+- **A component the file already has under that name wins** over an imported one, so a team's own icon set is used where it exists.
+- **`currentColor` becomes black** before Figma parses the SVG. The engine recolours each instance's strokes and fills from the Pencil fill.
+- **Icon vectors scale with the component,** and instances are sized with `rescale`, so the stroke width scales too, as it does with an SVG `viewBox`.
+- **An icon with no library is looked up in Lucide.** A name Lucide doesn't have is reported by `bundle` and builds as an empty frame with a warning.
+
 ## Checks after a build
 
 - **Text overflow:** visible text that runs past its parent or the screen. The walk skips hidden subtrees, because `findAll(n => n.visible)` still returns text inside a hidden parent with stale bounds. It also skips layers that clip on purpose, such as horizontal scroll rows.
@@ -61,5 +69,5 @@ Each rule below fixed a real frame that came out wrong. All of them are tested i
 - Mesh gradients use their first colour, and shaders use `u_base`.
 - `flipX`/`flipY` are ignored, with a warning.
 - Rich text runs (mixed styles inside one text node) aren't extracted yet.
-- Icons must already exist in Figma as components named `Icon/<name>` and be registered (`engine.register("icon", name, id)`). A built-in Lucide importer is planned.
+- Only Lucide icons are imported. Other icon libraries need their components registered by hand.
 - Only the first theme axis becomes Figma modes (see [Variables](#variables)).

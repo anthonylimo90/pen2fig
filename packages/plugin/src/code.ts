@@ -2,8 +2,8 @@
 // builds it, swaps image placeholders for real bytes, verifies, and reports back.
 
 import {
-  checkBundle, createEngine, frameOverlaps, importVariables, missingComponents, textOverflow,
-  type Bundle, type Issue, type ScreenResult, type VariableImportResult,
+  checkBundle, createEngine, frameOverlaps, importIcons, importVariables, missingComponents, textOverflow,
+  type Bundle, type IconImportResult, type Issue, type ScreenResult, type VariableImportResult,
 } from "@pen2fig/core";
 
 const NS = "pen2fig";
@@ -18,6 +18,7 @@ export interface Report {
   jobId?: string;
   page: string;
   variables?: Omit<VariableImportResult, "warnings">;
+  icons?: IconImportResult;
   components: ScreenResult[];
   screens: ScreenResult[];
   images: { placed: number; failed: string[] };
@@ -55,6 +56,7 @@ async function run(bundle: Bundle, jobId?: string): Promise<Report> {
   const engine = await createEngine({ namespace: NS });
   const report: Report = { jobId, page: bundle.page, components: [], screens: [], images: { placed: 0, failed: [] }, issues: [], warnings: engine.warnings, ms: 0 };
   if (vars) { const { warnings, ...rest } = vars; report.variables = rest; engine.warnings.push(...warnings); }
+  if (bundle.icons && Object.keys(bundle.icons).length) report.icons = await importIcons(bundle.icons, await pageNamed("Icons"), engine);
 
   if (bundle.components?.length) {
     const lib = await pageNamed("Components");

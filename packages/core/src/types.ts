@@ -96,7 +96,7 @@ export interface PenProps {
 export interface PenFrame extends PenProps { type: "frame"; reusable?: boolean; children?: PenNode[] }
 export interface PenGroup extends PenProps { type: "group"; children?: PenNode[] }
 export interface PenText extends PenProps { type: "text" }
-export interface PenIcon extends PenProps { type: "icon" | "icon_font"; icon?: string; iconFontName?: string }
+export interface PenIcon extends PenProps { type: "icon" | "icon_font"; icon?: string; iconFontName?: string; iconFontFamily?: string }
 export interface PenShape extends PenProps {
   type: "rectangle" | "ellipse" | "polygon";
   startAngle?: Var<number>;

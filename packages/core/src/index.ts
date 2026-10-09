@@ -4,3 +4,4 @@ export { createEngine, type Engine, type EngineOptions, type ScreenResult } from
 export * from "./verify";
 export * from "./bundle";
 export * from "./variables";
+export * from "./icons";

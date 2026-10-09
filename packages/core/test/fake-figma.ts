@@ -345,11 +345,21 @@ export function installFakeFigma(opts: { fonts?: string[]; maxModes?: number } =
     createEllipse: () => new Ellipse(),
     createPolygon: () => new Polygon(),
     createPage: () => { const p = new Page("Page"); adopt(root, p); return p; },
+    /** A frame holding one vector per shape element, painted from the root's fill/stroke attributes. */
     createNodeFromSvg(svg: string) {
-      const attr = (k: string) => parseFloat(new RegExp(`${k}="([\\d.]+)"`).exec(svg)?.[1] ?? "100");
-      const f = new Frame(); f._w = attr("width"); f._h = attr("height");
-      const v = new Vector(); v._w = f._w; v._h = f._h; v.fills = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }];
-      adopt(f, v);
+      if (!/<svg[\s>]/.test(svg)) throw new Error("Invalid SVG");
+      const root = /<svg([^>]*)>/.exec(svg)![1];
+      const attr = (src: string, k: string) => new RegExp(`(?:^|\\s)${k}="([^"]*)"`).exec(src)?.[1];
+      const f = new Frame(); f.fills = [];
+      f._w = parseFloat(attr(root, "width") ?? "100"); f._h = parseFloat(attr(root, "height") ?? "100");
+      const paint = (c: string | undefined) => (!c || c === "none" ? [] : [{ type: "SOLID", color: c === "#000000" || c === "#000" ? { r: 0, g: 0, b: 0 } : { r: 0.5, g: 0.5, b: 0.5 } }]);
+      for (const m of svg.matchAll(/<(path|circle|ellipse|line|polyline|polygon|rect)\b([^>]*)>/g)) {
+        const v = new Vector(); v._w = f._w; v._h = f._h;
+        v.fills = paint(attr(m[2], "fill") ?? attr(root, "fill") ?? "#000000");
+        v.strokes = paint(attr(m[2], "stroke") ?? attr(root, "stroke"));
+        v.strokeWeight = parseFloat(attr(m[2], "stroke-width") ?? attr(root, "stroke-width") ?? "1");
+        adopt(f, v);
+      }
       return f;
     },
     group(nodes: any[], parent: any, index?: number) {

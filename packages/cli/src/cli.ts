@@ -2,17 +2,19 @@
 // pen2fig CLI. Plain Node (type stripping), no dependencies.
 //
 //   pen2fig snippet <id…> [--components] [--no-variables]   JS to run with the Pencil MCP `execute` tool
-//   pen2fig bundle <pencil-output> --page <name> [--pen-dir <dir>] [--keep-positions] [--no-variables] [-o bundle.json]
+//   pen2fig bundle <pencil-output> --page <name> [--pen-dir <dir>] [--keep-positions] [--no-variables]
+//                  [--no-icons] [--lucide <version>] [--icons-dir <dir>] [-o bundle.json]
 //   pen2fig serve [--port 7331]                 job queue + image server the Figma plugin polls
 //   pen2fig push <bundle.json> [--wait] [--server <url>]
 //   pen2fig report <jobId> [--server <url>]
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { resolve, isAbsolute, extname } from "node:path";
+import { resolve, isAbsolute, extname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 const BUNDLE_VERSION = 1;
+const LUCIDE_VERSION = "1.54.0";
 const args = process.argv.slice(2);
 const cmd = args.shift();
 const flag = (name: string, def?: string) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
@@ -48,7 +50,9 @@ function readPencilOutput(file: string): string {
   return raw;
 }
 
-function makeBundle(file: string, page: string, penDir: string | undefined, keepPositions: boolean, withVariables: boolean) {
+interface IconOptions { enabled: boolean; lucide: string; dir?: string }
+
+async function makeBundle(file: string, page: string, penDir: string | undefined, keepPositions: boolean, withVariables: boolean, iconOpts: IconOptions) {
   const screens: Entry[] = [], components: Entry[] = [];
   let variables: { variables: Record<string, unknown>; themes?: Record<string, string[]> } | undefined;
   for (const line of readPencilOutput(file).split("\n")) {
@@ -82,7 +86,49 @@ function makeBundle(file: string, page: string, penDir: string | undefined, keep
   for (const e of [...components, ...screens]) walk(e.node);
   const missing = Object.entries(images).filter(([, v]) => v.path && !existsSync(v.path));
   if (missing.length) process.stderr.write(`warning: ${missing.length} local image(s) not found — pass --pen-dir <folder of the .pen file>\n`);
-  return { version: BUNDLE_VERSION, source: { file, exportedAt: new Date().toISOString() }, page, ...(variables && { variables }), components, screens, images };
+  const icons = iconOpts.enabled ? await fetchIcons(collectIcons([...components, ...screens].map((e) => e.node)), iconOpts) : {};
+  return { version: BUNDLE_VERSION, source: { file, exportedAt: new Date().toISOString() }, page, ...(variables && { variables }), components, screens, images, icons };
+}
+
+// ── icons ────────────────────────────────────────────────────────────────────
+/** Icon names used by nodes and by `icon` swaps in overrides, with their library when one is named. */
+function collectIcons(nodes: any[]): Map<string, string | undefined> {
+  const out = new Map<string, string | undefined>();
+  const add = (name: unknown, lib: unknown) => { if (typeof name === "string" && name && !out.get(name)) out.set(name, typeof lib === "string" ? lib : undefined); };
+  const walk = (n: any) => {
+    if (!n || typeof n !== "object") return;
+    if (n.type === "icon" || n.type === "icon_font") add(n.icon ?? n.iconFontName, n.library ?? n.iconFontFamily);
+    else if (n.icon !== undefined) add(n.icon, n.library ?? n.iconFontFamily); // an override that swaps the icon
+    for (const c of n.children ?? []) walk(c);
+    for (const d of Object.values(n.descendants ?? {})) walk(d);
+  };
+  for (const n of nodes) walk(n);
+  return out;
+}
+
+/** Lucide SVGs for every icon whose library is Lucide or unnamed, from --icons-dir or unpkg. */
+async function fetchIcons(wanted: Map<string, string | undefined>, o: IconOptions) {
+  const icons: Record<string, { library: string; svg: string; source: string }> = {};
+  const other = [...wanted].filter(([, lib]) => lib && !/lucide/i.test(lib));
+  if (other.length) process.stderr.write(`warning: ${other.length} icon(s) from other libraries (${[...new Set(other.map(([, l]) => l))].join(", ")}) aren't imported; register their components yourself\n`);
+  const names = [...wanted].filter(([, lib]) => !lib || /lucide/i.test(lib)).map(([n]) => n);
+  const failed: string[] = [];
+  const one = async (name: string) => {
+    if (!/^[a-z0-9-]+$/.test(name)) { failed.push(name); return; }
+    if (o.dir) {
+      const p = join(o.dir, name + ".svg");
+      if (existsSync(p)) icons[name] = { library: "lucide", svg: readFileSync(p, "utf8"), source: p };
+      else failed.push(name);
+      return;
+    }
+    const url = `https://unpkg.com/lucide-static@${o.lucide}/icons/${name}.svg`;
+    const r = await fetch(url).catch(() => null);
+    if (r?.ok) icons[name] = { library: "lucide", svg: await r.text(), source: url };
+    else failed.push(name);
+  };
+  for (let i = 0; i < names.length; i += 8) await Promise.all(names.slice(i, i + 8).map(one));
+  if (failed.length) process.stderr.write(`warning: ${failed.length} icon(s) not found in Lucide ${o.dir ?? o.lucide}: ${failed.join(", ")}\n`);
+  return icons;
 }
 
 // ── serve ────────────────────────────────────────────────────────────────────
@@ -180,11 +226,12 @@ switch (cmd) {
     const penDir = flag("--pen-dir");
     const keep = bool("--keep-positions");
     const noVars = bool("--no-variables");
+    const iconOpts = { enabled: !bool("--no-icons"), lucide: flag("--lucide", LUCIDE_VERSION)!, dir: flag("--icons-dir") };
     const file = args[0] ?? die("usage: pen2fig bundle <pencil-output.txt> --page <name>");
-    const b = makeBundle(isAbsolute(file) ? file : resolve(file), page, penDir, keep, !noVars);
+    const b = await makeBundle(isAbsolute(file) ? file : resolve(file), page, penDir, keep, !noVars, iconOpts);
     writeFileSync(out, JSON.stringify(b));
     const nv = b.variables ? Object.keys(b.variables.variables).length : 0;
-    process.stdout.write(`${out}: ${b.screens.length} screen(s), ${b.components.length} component(s), ${Object.keys(b.images).length} image(s), ${nv} variable(s)\n`);
+    process.stdout.write(`${out}: ${b.screens.length} screen(s), ${b.components.length} component(s), ${Object.keys(b.images).length} image(s), ${nv} variable(s), ${Object.keys(b.icons).length} icon(s)\n`);
     break;
   }
   case "serve": serve(parseInt(flag("--port", "7331")!, 10)); break;
@@ -195,6 +242,7 @@ switch (cmd) {
 
   snippet <id…> [--components]   print JS for the Pencil MCP execute tool  [--no-variables]
   bundle <output> --page <name>  turn that output into bundle.json  [--pen-dir dir] [-o file] [--no-variables]
+                                 icons: [--no-icons] [--lucide <version>] [--icons-dir <lucide-static/icons>]
   serve [--port 7331]            job server the Figma plugin polls
   push <bundle.json> [--wait]    queue a build; --wait prints the plugin's report
   report <jobId>                 show a job's report
