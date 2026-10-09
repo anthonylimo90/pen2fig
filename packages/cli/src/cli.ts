@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // pen2fig CLI. Plain Node (type stripping), no dependencies.
 //
-//   pen2fig snippet <id…> [--components]        JS to run with the Pencil MCP `execute` tool
-//   pen2fig bundle <pencil-output> --page <name> [--pen-dir <dir>] [--keep-positions] [-o bundle.json]
+//   pen2fig snippet <id…> [--components] [--no-variables]   JS to run with the Pencil MCP `execute` tool
+//   pen2fig bundle <pencil-output> --page <name> [--pen-dir <dir>] [--keep-positions] [--no-variables] [-o bundle.json]
 //   pen2fig serve [--port 7331]                 job queue + image server the Figma plugin polls
 //   pen2fig push <bundle.json> [--wait] [--server <url>]
 //   pen2fig report <jobId> [--server <url>]
@@ -22,11 +22,12 @@ const die = (m: string): never => { process.stderr.write(m + "\n"); process.exit
 // ── snippet ──────────────────────────────────────────────────────────────────
 /**
  * Pencil's `execute` has no return; output goes through Print. Each node is printed on one line as
- * `@@{kind, h: bounds, s: node}`. The padding line forces the MCP to save large output to a file
- * instead of truncating it.
+ * `@@{kind, h: bounds, s: node}`; variables as `@@{kind:"variables", v}`. The padding line forces the
+ * MCP to save large output to a file instead of truncating it.
  */
-function snippet(ids: string[], withComponents: boolean): string {
+function snippet(ids: string[], withComponents: boolean, withVariables: boolean): string {
   return `const IDS=${JSON.stringify(ids)};const WITH=${withComponents};
+${withVariables ? 'Print("@@"+JSON.stringify({kind:"variables",v:GetVariables()}));' : ""}
 const bounds=(id)=>Get(id,(n,c)=>{c.skipChildren();return c.depth===0?{w:Math.round(c.bounds.width),h:Math.round(c.bounds.height),x:Math.round(c.bounds.x),y:Math.round(c.bounds.y)}:undefined})[0];
 const refs=(n,acc)=>{if(!n||typeof n!=="object")return acc;if(n.type==="ref"&&n.ref)acc.push(n.ref);for(const c of n.children||[])refs(c,acc);if(n.descendants)for(const d of Object.values(n.descendants))refs(d,acc);return acc;};
 const done=new Set();
@@ -47,13 +48,15 @@ function readPencilOutput(file: string): string {
   return raw;
 }
 
-function makeBundle(file: string, page: string, penDir: string | undefined, keepPositions: boolean) {
+function makeBundle(file: string, page: string, penDir: string | undefined, keepPositions: boolean, withVariables: boolean) {
   const screens: Entry[] = [], components: Entry[] = [];
+  let variables: { variables: Record<string, unknown>; themes?: Record<string, string[]> } | undefined;
   for (const line of readPencilOutput(file).split("\n")) {
     const t = line.trim();
     if (!t.startsWith("@@{")) continue;
     const o = JSON.parse(t.slice(2));
     const kind = o.kind ?? "screen";
+    if (kind === "variables") { if (withVariables && o.v?.variables) variables = o.v; continue; }
     const e: Entry = { id: o.s.id, bounds: o.h, node: o.s };
     const list = kind === "component" ? components : screens;
     if (!list.some((x) => x.id === e.id)) list.push(e);
@@ -79,7 +82,7 @@ function makeBundle(file: string, page: string, penDir: string | undefined, keep
   for (const e of [...components, ...screens]) walk(e.node);
   const missing = Object.entries(images).filter(([, v]) => v.path && !existsSync(v.path));
   if (missing.length) process.stderr.write(`warning: ${missing.length} local image(s) not found — pass --pen-dir <folder of the .pen file>\n`);
-  return { version: BUNDLE_VERSION, source: { file, exportedAt: new Date().toISOString() }, page, components, screens, images };
+  return { version: BUNDLE_VERSION, source: { file, exportedAt: new Date().toISOString() }, page, ...(variables && { variables }), components, screens, images };
 }
 
 // ── serve ────────────────────────────────────────────────────────────────────
@@ -166,8 +169,9 @@ const SERVER = () => flag("--server", "http://localhost:7331")!;
 switch (cmd) {
   case "snippet": {
     const withC = bool("--components");
-    if (!args.length) die("usage: pen2fig snippet <pencil-node-id…> [--components]");
-    process.stdout.write(snippet(args, withC) + "\n");
+    const noVars = bool("--no-variables");
+    if (!args.length) die("usage: pen2fig snippet <pencil-node-id…> [--components] [--no-variables]");
+    process.stdout.write(snippet(args, withC, !noVars) + "\n");
     break;
   }
   case "bundle": {
@@ -175,10 +179,12 @@ switch (cmd) {
     const out = flag("-o", "bundle.json")!;
     const penDir = flag("--pen-dir");
     const keep = bool("--keep-positions");
+    const noVars = bool("--no-variables");
     const file = args[0] ?? die("usage: pen2fig bundle <pencil-output.txt> --page <name>");
-    const b = makeBundle(isAbsolute(file) ? file : resolve(file), page, penDir, keep);
+    const b = makeBundle(isAbsolute(file) ? file : resolve(file), page, penDir, keep, !noVars);
     writeFileSync(out, JSON.stringify(b));
-    process.stdout.write(`${out}: ${b.screens.length} screen(s), ${b.components.length} component(s), ${Object.keys(b.images).length} image(s)\n`);
+    const nv = b.variables ? Object.keys(b.variables.variables).length : 0;
+    process.stdout.write(`${out}: ${b.screens.length} screen(s), ${b.components.length} component(s), ${Object.keys(b.images).length} image(s), ${nv} variable(s)\n`);
     break;
   }
   case "serve": serve(parseInt(flag("--port", "7331")!, 10)); break;
@@ -187,8 +193,8 @@ switch (cmd) {
   default:
     process.stdout.write(`pen2fig — port Pencil designs into Figma
 
-  snippet <id…> [--components]   print JS for the Pencil MCP execute tool
-  bundle <output> --page <name>  turn that output into bundle.json  [--pen-dir dir] [-o file]
+  snippet <id…> [--components]   print JS for the Pencil MCP execute tool  [--no-variables]
+  bundle <output> --page <name>  turn that output into bundle.json  [--pen-dir dir] [-o file] [--no-variables]
   serve [--port 7331]            job server the Figma plugin polls
   push <bundle.json> [--wait]    queue a build; --wait prints the plugin's report
   report <jobId>                 show a job's report

@@ -119,3 +119,11 @@ export type PenNode = PenFrame | PenGroup | PenText | PenIcon | PenShape | PenPa
 
 /** Canvas bounds of a top-level node, measured in Pencil. Used as the size fallback for `fill_container` roots. */
 export interface Bounds { w: number; h: number; x?: number; y?: number }
+
+/** One variable from Pencil's `GetVariables()`. A themed value is a list; later matching entries win. */
+export interface PenVariable {
+  type: "color" | "number" | "string" | "boolean";
+  value: unknown | { value: unknown; theme?: Record<string, string> }[];
+}
+/** Pencil's `GetVariables()` result. `themes` maps an axis (`mode`) to its values (`["light", "dark"]`). */
+export interface PenVariables { variables: Record<string, PenVariable>; themes?: Record<string, string[]> }

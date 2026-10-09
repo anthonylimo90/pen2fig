@@ -5,6 +5,52 @@
   "exportedAt": "2026-10-09T00:00:00Z"
  },
  "page": "pen2fig example",
+ "variables": {
+  "themes": {
+   "mode": [
+    "light",
+    "dark"
+   ]
+  },
+  "variables": {
+   "accent": {
+    "type": "color",
+    "value": "#6D48E5"
+   },
+   "surface": {
+    "type": "color",
+    "value": [
+     {
+      "value": "#FFFFFF"
+     },
+     {
+      "value": "#161B2E",
+      "theme": {
+       "mode": "dark"
+      }
+     }
+    ]
+   },
+   "ink": {
+    "type": "color",
+    "value": [
+     {
+      "value": "#0D1424"
+     },
+     {
+      "value": "#F6F7FB",
+      "theme": {
+       "mode": "dark"
+      }
+     }
+    ]
+   },
+   "radius-card": {
+    "type": "number",
+    "value": 12
+   }
+  }
+ },
  "components": [],
  "screens": [
   {
@@ -51,10 +97,10 @@
        20,
        24
       ],
-      "fill": "#FFFFFF",
+      "fill": "$surface",
       "stroke": "#E6EAF2",
       "strokeWidth": 1,
-      "cornerRadius": 12,
+      "cornerRadius": "$radius-card",
       "children": [
        {
         "id": "eyebrow",
@@ -64,7 +110,7 @@
         "fontWeight": "600",
         "fontSize": 11,
         "letterSpacing": 0.6,
-        "fill": "#6D48E5"
+        "fill": "$accent"
        },
        {
         "id": "title",
@@ -73,7 +119,7 @@
         "fontFamily": "Inter",
         "fontWeight": "700",
         "fontSize": 20,
-        "fill": "#0D1424"
+        "fill": "$ink"
        },
        {
         "id": "body",

@@ -39,6 +39,15 @@ Each rule below fixed a real frame that came out wrong. The pure ones are unit-t
 - **Local image paths are relative to the `.pen` file.** Pass `--pen-dir` when bundling.
 - **Shader fills can't run in Figma.** The engine uses the shader's `u_base` colour. For the real look, render the shader to a PNG at twice the node size and use it as an image fill.
 
+## Variables
+
+- **Variables are imported before the engine starts.** The engine reads local variables once, when it is created, so a variable created afterwards would not bind.
+- **The first theme axis becomes the collection's modes** (`mode: [light, dark]` → modes *light* and *dark*). Figma has one set of modes per collection; values that vary on a second axis use their default, with a warning.
+- **Later themed entries win,** as in Pencil. An entry with no theme is the default for every mode.
+- **`$name` values become aliases,** created after every variable exists so the order in the file doesn't matter.
+- **A variable that already exists in another collection is kept** and used as it is. Only the *Pencil* collection is updated on a re-run.
+- **A mode the Figma plan doesn't allow** is skipped with a warning. Its values are dropped and the default mode still binds.
+
 ## Checks after a build
 
 - **Text overflow:** visible text that runs past its parent or the screen. The walk skips hidden subtrees, because `findAll(n => n.visible)` still returns text inside a hidden parent with stale bounds. It also skips layers that clip on purpose, such as horizontal scroll rows.
@@ -52,4 +61,4 @@ Each rule below fixed a real frame that came out wrong. The pure ones are unit-t
 - `flipX`/`flipY` are ignored, with a warning.
 - Rich text runs (mixed styles inside one text node) aren't extracted yet.
 - Icons must already exist in Figma as components named `Icon/<name>` and be registered (`engine.register("icon", name, id)`). A built-in Lucide importer is planned.
-- Variables must already exist in Figma under the same names as in Pencil. A variable importer is planned.
+- Only the first theme axis becomes Figma modes (see [Variables](#variables)).

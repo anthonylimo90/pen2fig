@@ -27,15 +27,17 @@ The `.pen` file is encrypted. Read it only through the Pencil MCP, never from di
    - `status: "Δw,h"`: the screen size differs from Pencil. Look at the screenshot. It's usually a `fill_container` with nothing to fill, or text growth.
    - `issues[].kind === "text-overflow"`: check whether that row is meant to scroll. If it isn't, fix the source or the Figma node.
    - `missing-component`: a `ref` points at a component that wasn't extracted. Re-run the snippet with `--components`.
-   - `warnings`: font fallbacks, detached instances and missing variables. A missing variable shows as magenta (#FF00FF).
+   - `variables`: the *Pencil* collection the plugin created or updated (`created`, `updated`, `kept`). `kept` lists names that already existed in another collection and were used as they are.
+   - `warnings`: font fallbacks, detached instances and missing variables. A missing variable shows as magenta (#FF00FF). If the bundle has no `variables`, it was made with `--no-variables` or from old snippet output: re-extract.
 7. **Re-run.** Pushing the same bundle replaces the frames it built before, by Pencil id. Iterate per zone.
 
 ## Without the plugin (`use_figma` route)
 
 Use this when you can only run plugin code through an MCP tool, which has a per-call code size limit and no network:
 
-- Load the engine once from `packages/core/dist/pen2fig-core.js` (27KB):
+- Load the engine once from `packages/core/dist/pen2fig-core.js` (30KB):
   `const P2F = new Function(src + ";return P2F")(); const E = await P2F.createEngine();`
+  If the bundle has `variables`, run `await P2F.importVariables(bundle.variables)` first: the engine only sees variables that exist when it is created.
   Then call `E.buildScreen(node, page, bounds)` for each screen.
 - **When the bundle is too big to paste:** pack the JSON into an uncompressed PNG (zlib level 0, stored deflate). Upload it with the asset tool without a target node. In the plugin, read it back with `figma.getImageByHash(hash).getBytesAsync()`, parsing the IDAT stored blocks and stripping the row filter bytes. Delete the frame the upload placed.
 - **Images:** the sandbox has no network. Upload each distinct image with the asset tool, then copy the returned hash to every node tagged `pen2fig/img`.

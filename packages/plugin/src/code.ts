@@ -2,8 +2,8 @@
 // builds it, swaps image placeholders for real bytes, verifies, and reports back.
 
 import {
-  checkBundle, createEngine, frameOverlaps, missingComponents, textOverflow,
-  type Bundle, type Issue, type ScreenResult,
+  checkBundle, createEngine, frameOverlaps, importVariables, missingComponents, textOverflow,
+  type Bundle, type Issue, type ScreenResult, type VariableImportResult,
 } from "@pen2fig/core";
 
 const NS = "pen2fig";
@@ -17,6 +17,7 @@ type ToCode =
 export interface Report {
   jobId?: string;
   page: string;
+  variables?: Omit<VariableImportResult, "warnings">;
   components: ScreenResult[];
   screens: ScreenResult[];
   images: { placed: number; failed: string[] };
@@ -49,8 +50,11 @@ async function pageNamed(name: string): Promise<PageNode> {
 
 async function run(bundle: Bundle, jobId?: string): Promise<Report> {
   const t0 = Date.now();
+  // Variables first: the engine reads local variables once, when it is created.
+  const vars = bundle.variables ? await importVariables(bundle.variables) : undefined;
   const engine = await createEngine({ namespace: NS });
   const report: Report = { jobId, page: bundle.page, components: [], screens: [], images: { placed: 0, failed: [] }, issues: [], warnings: engine.warnings, ms: 0 };
+  if (vars) { const { warnings, ...rest } = vars; report.variables = rest; engine.warnings.push(...warnings); }
 
   if (bundle.components?.length) {
     const lib = await pageNamed("Components");

@@ -57,13 +57,16 @@ npm run build            # builds packages/plugin/dist and packages/core/dist
 
 Re-running a bundle replaces the frames it built before (a ledger keyed by Pencil id), so you can iterate on one zone.
 
+The snippet also extracts the file's variables. The plugin imports them into a Figma collection called *Pencil* before it builds anything, so `$name` references bind to real variables. A re-run updates that collection in place. Variables of the same name in your own collections are left alone and used as they are. Pass `--no-variables` to `snippet` or `bundle` to skip this.
+
 ## What gets mapped
 
 | Pencil | Figma |
 |---|---|
 | frame, default horizontal layout, `gap`, `padding`, justify/align | frame with auto layout |
 | `fill_container` / `fit_content` (with fallbacks) | FILL / HUG sizing, resolved after insertion |
-| `$variable` colours, numbers, fonts | bound Figma variables (when a variable of that name exists) |
+| variables and themes (`GetVariables()`) | a *Pencil* variable collection, one mode per theme (light, dark, …), aliases kept |
+| `$variable` colours, numbers, fonts | bound Figma variables |
 | `reusable` nodes and `ref` instances, `descendants` overrides | components, instances and overrides. The instance is detached only when Figma refuses an override |
 | text (family, weight, size, line height, tracking, growth) | text, with the nearest installed style |
 | icons (`icon` + `library`) | instances of components named `Icon/<name>` that you register |
